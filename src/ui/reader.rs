@@ -5,10 +5,10 @@ use iced::widget::{
 use iced::{
     Center, Element, Fill, Length, Point, Rectangle, Renderer, Theme
 };
-use crate::Message;
+use crate::{Layout, Message};
 
 
-pub fn reader_view<'a>() -> Element<'a, Message> {
+pub fn reader_view<'a>(layout: &Layout) -> Element<'static, Message> {
     
     let sidebar = center(
         column!["Sidebar!", "More sidebar!"]
