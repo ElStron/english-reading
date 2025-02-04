@@ -6,4 +6,5 @@ pub enum Message {
     NavigateTo(&'static str),
     ExplainToggled(bool),
     ThemeSelected(Theme),
+    ImagesLoaded(),
 }
