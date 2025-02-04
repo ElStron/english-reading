@@ -6,7 +6,9 @@ use iced::{
     color, Center, Element, Font, Length, Subscription, Theme,
 };
 mod ui;
-use ui::reader_view;
+mod messages;
+use messages::Message;
+use ui::{books_list_view, reader_view};
 
 pub fn main() -> iced::Result {
     iced::application(Layout::title, Layout::update, Layout::view)
@@ -22,13 +24,6 @@ struct Layout {
     theme: Theme,
 }
 
-#[derive(Debug, Clone)]
-enum Message {
-    NavigateTo(&'static str),
-    ExplainToggled(bool),
-    ThemeSelected(Theme),
-}
-
 impl Layout {
     fn title(&self) -> String {
         format!("{} - Layout - Iced", self.example.title)
@@ -42,6 +37,7 @@ impl Layout {
                 }
             }
             Message::ExplainToggled(explain) => {
+               
                 self.explain = explain;
             }
             Message::ThemeSelected(theme) => {
@@ -65,7 +61,8 @@ impl Layout {
         .spacing(20)
         .align_y(Center);
 
-        let content = center(if self.explain {
+        let content = center(
+            if self.explain {
             self.example.view().explain(color!(0x0000ff))
         } else {
             self.example.view()
@@ -81,26 +78,33 @@ impl Layout {
                             let palette = theme.extended_palette();
                             match status {
                                 button::Status::Active => button::Style {
-                                    background: Some(iced::Background::Color(palette.background.base.color)), 
-                                    text_color: palette.background.weak.text, // Deja que Iced maneje el color del texto
-                                    ..Default::default() // Deja que Iced maneje el color del texto
+                                    background: Some(iced::Background::Color(
+                                        palette.background.base.color
+                                    )), 
+                                    text_color: palette.background.weak.text, 
+                                    ..Default::default() 
                                 },
                                 button::Status::Hovered => button::Style {
-                                    background: Some(iced::Background::Color(palette.background.strong.color)), // Fondo transparente
-                                    ..Default::default() // Deja que Iced maneje el color del texto
+                                    background: Some(iced::Background::Color(
+                                        palette.background.strong.color
+                                    )),
+                                    ..Default::default()
                                 },
                                 _ => button::Style::default()
                             }
                         })
                         .width(Length::Fill)
                         .padding([5, 10])
-                        .on_press(Message::NavigateTo(example.title))
+                        .on_press(
+                            Message::NavigateTo(example.title)
+                        )
                         .into()
                 })
                 .collect::<Vec<Element<Message>>>(),
         ).spacing(10).width(200);
 
-        let footer = text("This is a footer").size(10);
+        let footer = text(
+            "This is a footer").size(10);
 
         let content_and_sidebar = row![
             controls,
@@ -130,10 +134,17 @@ impl Example {
             title: "Reader",
             view: reader_view,
         },
+        Self {
+            title: "Books",
+            view: books_list_view,
+        },
     ];
 
     fn find_by_title(title: &str) -> Option<Self> {
-        Self::LIST.iter().copied().find(|example| example.title == title)
+        Self::LIST
+            .iter()
+            .copied()
+            .find(|example| example.title == title)
     }
 
     fn view(&self) -> Element<Message> {
@@ -146,3 +157,5 @@ impl Default for Example {
         Self::LIST[0]
     }
 }
+
+
