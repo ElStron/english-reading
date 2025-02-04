@@ -1,3 +1,4 @@
+use iced::futures;
 use iced::widget::{
     button, center, checkbox, column, horizontal_space,
     pick_list, row, text,
@@ -9,6 +10,7 @@ mod ui;
 mod messages;
 use messages::Message;
 use ui::{books_list_view, reader_view};
+use ui::books::BooksList;
 
 pub fn main() -> iced::Result {
     iced::application(Layout::title, Layout::update, Layout::view)
@@ -22,6 +24,7 @@ struct Layout {
     example: Example,
     explain: bool,
     theme: Theme,
+    books_list: BooksList,
 }
 
 impl Layout {
@@ -30,9 +33,16 @@ impl Layout {
     }
 
     fn update(&mut self, message: Message) {
+        let mut books = BooksList::new();
         match message {
             Message::NavigateTo(title) => {
                 if let Some(example) = Example::find_by_title(title) {
+                    if title == "Books" {
+                        if self.books_list.get_books().is_empty() ||self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
+                            futures::executor::block_on(books.fetch_images());
+                            self.books_list = books;
+                        }
+                    } 
                     self.example = example;
                 }
             }
@@ -42,6 +52,10 @@ impl Layout {
             }
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
+            }
+            Message::ImagesLoaded() => {
+                print!("Images loaded");
+                
             }
         }
     }
@@ -63,10 +77,11 @@ impl Layout {
 
         let content = center(
             if self.explain {
-            self.example.view().explain(color!(0x0000ff))
-        } else {
-            self.example.view()
-        })
+                self.example.view(self).explain(color!(0x0000ff)) // Pasamos 'self'
+            } else {
+                self.example.view(self) // Pasamos 'self'
+            },
+        )
         .padding(4);
 
         let controls = column(
@@ -125,7 +140,7 @@ impl Layout {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Example {
     title: &'static str,
-    view: fn() -> Element<'static, Message>,
+    view: fn(&Layout) -> Element<'static, Message>,
 }
 
 impl Example {
@@ -147,8 +162,8 @@ impl Example {
             .find(|example| example.title == title)
     }
 
-    fn view(&self) -> Element<Message> {
-        (self.view)()
+    fn view(&self, layout: &Layout) -> Element<Message> { // Recibe una referencia a 'Layout'
+        (self.view)(layout)  // Llama a la función vista pasándole 'layout'
     }
 }
 
