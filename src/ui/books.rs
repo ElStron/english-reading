@@ -17,14 +17,17 @@ pub fn books_list_view<'a>(layout: &Layout) -> Element<'static, Message>  {
                 Some(handle) => handle.clone(),
                 None => image::Handle::from_path("./45.png"),
             };
-            column![
+            
+            let button = button(
+                column![
                 image(image_widget).width(200),
                 text(book.title.clone()).size(12), 
-                button("Read").on_press(Message::NavigateTo("Rerad"))
             ]
             .max_width(120)
-            .into()
-    }).collect::<Vec<_>>();
+            ).on_press(Message::NavigateTo("Reader"));
+
+            button.into()
+    }).collect::<Vec<Element<'_, Message>>>();
 
     let content = container(
         scrollable(
@@ -41,10 +44,8 @@ pub fn books_list_view<'a>(layout: &Layout) -> Element<'static, Message>  {
             .width(Fill),
         )
         .height(Fill),
-    )
-    .padding(10);
-
-    column![content].into()
+    ).width(Fill);
+    content.into()
 }
 
 #[derive(Default,Debug, Clone, PartialEq, Eq)]
@@ -60,6 +61,7 @@ pub struct Book {
     pub handle_imagen: Option<image::Handle>,
 }
 
+#[warn(non_snake_case)]
 #[derive(PartialEq, Clone, Eq, Debug,serde::Deserialize)]
 struct ApiBook {
     title: String,
@@ -100,7 +102,6 @@ impl BooksList {
                     handle_imagen: Some(imagen),
                 }
             })).await;
-            println!("{:?}", books_with_images);
             Ok(books_with_images)
         }
         #[cfg(target_arch = "wasm32")]
