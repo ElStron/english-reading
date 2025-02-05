@@ -1,6 +1,6 @@
-use iced::futures;
+use iced::futures::future::join_all;
 use iced::widget::{
-    column, container, row, scrollable, text, image
+    button, column, container, image, row, scrollable, text
 };
 use iced::{
     Center, Element, Fill
@@ -9,32 +9,32 @@ use crate::{Message, Layout};
 
 pub fn books_list_view<'a>(layout: &Layout) -> Element<'static, Message>  {
 
-    if layout.books_list.books.iter().all(|b| b.handle_imagen.is_none()) {
-        Message::ImagesLoaded();
-        println!("Images not loaded");
-
-    }
-
     let get_books = layout.books_list.books.clone();
+
+    let books_mapped = get_books.
+        iter().map(|book| {
+            let image_widget = match &book.handle_imagen {
+                Some(handle) => handle.clone(),
+                None => image::Handle::from_path("./45.png"),
+            };
+            column![
+                image(image_widget).width(200),
+                text(book.title.clone()).size(12), 
+                button("Read").on_press(Message::NavigateTo("Rerad"))
+            ]
+            .max_width(120)
+            .into()
+    }).collect::<Vec<_>>();
+
     let content = container(
         scrollable(
             column![
-                row(
-                    get_books.iter().map(|book| {
-
-                        let image_widget = match &book.handle_imagen {
-                            Some(handle) => handle.clone(),
-                            None => image::Handle::from_path("./45.png"),
-                        };
-                        column![
-                            image(image_widget).width(100).height(200),  // The image
-                            text(book.title.clone()).size(20), 
-                            text(book.description.clone())// Title, centered vertically
-                        ]
-                        .spacing(20)
-                        .into()
-                    })
-                )
+                row(books_mapped)
+                .spacing(15)
+                .wrap(),
+                button("Read").on_press(
+                    Message::ImagesLoaded()
+                ),
             ]
             .spacing(40)
             .align_x(Center)
@@ -60,28 +60,17 @@ pub struct Book {
     pub handle_imagen: Option<image::Handle>,
 }
 
+#[derive(PartialEq, Clone, Eq, Debug,serde::Deserialize)]
+struct ApiBook {
+    title: String,
+    url: String,
+    thumbnailUrl: String,
+}
+
 impl BooksList {
     pub fn new() -> Self {
         Self {
-            books: vec![
-                Book {
-                    title: "El principito".to_string(),
-                    imagen: "https://marketplace.canva.com/EAF55Kx4v24/1/0/1003w/canva-portada-libro-fantas%C3%ADa-ilustrativo-verde-_pp1hAU8znQ.jpg".to_string(),
-                    description: "este es un ejemplo de descripción".to_string(),
-                    handle_imagen: None,
-                },
-                Book {
-                    title: "El principito".to_string(),
-                    imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjwEEekvhhMCqwDnajKcTseJ0HFCJ0sF012A&s".to_string(),
-                    description: "este es un ejemplo de descripción".to_string(),
-                    handle_imagen: None,
-                },
-                Book {
-                    title: "El principito".to_string(),
-                    imagen: "https://marketplace.canva.com/EAFI171fL0M/1/0/1003w/canva-portada-de-libro-de-novela-ilustrado-color-azul-aqua-PQeWaiiK0aA.jpg".to_string(),
-                    description: "este es un ejemplo de descripción".to_string(),
-                    handle_imagen: None,
-                }]
+            books: vec![]
         }
     }
 
@@ -89,32 +78,46 @@ impl BooksList {
         self.books.clone()
     }
 
-    pub async fn fetch_images(&mut self) {
-        let books = self.get_books();
-        let mut books_with_images = vec![];
+    pub async fn fetch_books(&self) -> Result<Vec<Book>, reqwest::Error> {
+        let url = "https://jsonplaceholder.typicode.com/albums/1/photos";
+    
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let books: Vec<ApiBook> = reqwest::get(url).await?.json().await?;
+            let books_with_images = join_all(
+                books.into_iter().map(|book| async {
+                let handle_imagen = self
+                    .fetch_image("https://picsum.photos/200/300").await; 
 
-        for book in books {
-            if book.handle_imagen.is_some() {
-                println!("Image already loaded");
-                books_with_images.push(book);
-                continue;
-            }
-
-            let handle_imagen = self.fetch_image(&book.imagen).await; 
-            let imagen = match handle_imagen {
-                Ok(handle) => handle,
-                Err(_) => image::Handle::from_path("https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"),
-                
-            };
-            books_with_images.push(Book {
-                title: book.title,
-                imagen: book.imagen,
-                description: book.description,
-                handle_imagen: Some(imagen),
-            });
+                let imagen = match handle_imagen {
+                    Ok(handle) => handle,
+                    Err(_) => image::Handle::from_path("./45.png"),
+                };
+                Book {
+                    title: book.title.clone(),
+                    imagen: book.thumbnailUrl,
+                    description: book.title,
+                    handle_imagen: Some(imagen),
+                }
+            })).await;
+            println!("{:?}", books_with_images);
+            Ok(books_with_images)
         }
+        #[cfg(target_arch = "wasm32")]
+        Ok(vec![])
 
-        self.books = books_with_images;
+    } 
+
+    pub async fn fetch_images(&mut self) {
+
+        match self.fetch_books().await {
+            Ok(books_with_images) => {
+                self.books = books_with_images;
+            }
+            Err(_) => {
+                println!("Error loading images");
+            }
+        }
     }
 
     async fn fetch_image(&self, id: &str) -> Result<image::Handle, reqwest::Error> {
@@ -130,7 +133,7 @@ impl BooksList {
         }
     
         #[cfg(target_arch = "wasm32")]
-        Ok(image::Handle::from_path(url))
+        Ok(image::Handle::from_path("./45.png"))
     }
 }
 
