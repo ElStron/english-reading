@@ -37,12 +37,13 @@ impl Layout {
         match message {
             Message::NavigateTo(title) => {
                 if let Some(example) = Example::find_by_title(title) {
-                    // if title == "Books" {
-                    //     if self.books_list.get_books().is_empty() ||self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
-                    //         futures::executor::block_on(books.fetch_images());
-                    //         self.books_list = books;
-                    //     }
-                    // } 
+                    self.example = example;
+                    if title == "Books" {
+                        if self.books_list.get_books().is_empty() ||self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
+                            futures::executor::block_on(books.fetch_images());
+                            self.books_list = books;
+                        }
+                    } 
                     self.example = example;
                 }
             }
@@ -119,7 +120,7 @@ impl Layout {
                         .into()
                 })
                 .collect::<Vec<Element<Message>>>(),
-        ).spacing(10).width(200);
+        ).spacing(10).width(150);
 
         let footer = text(
             "This is a footer").size(10);
