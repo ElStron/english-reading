@@ -1,6 +1,6 @@
 use iced::futures::future::join_all;
 use iced::widget::{
-    button, column, container, image, row, scrollable, text
+    button, column, container, image, row, scrollable, text, center
 };
 use iced::{
     Center, Element, Fill
@@ -9,25 +9,29 @@ use crate::{Message, Layout};
 
 pub fn books_list_view<'a>(layout: &Layout) -> Element<'static, Message>  {
 
-    let get_books = layout.books_list.books.clone();
-
-    let books_mapped = get_books.
-        iter().map(|book| {
+    let books_mapped = match layout.loading_books {
+        true => (0..30).map(|_| {
+            //
+            column![
+                center("Loading").style(container::rounded_box),
+            ].width(200).height(300).into()
+        }).collect::<Vec<Element<'_, Message>>>(),
+        false => layout.books_list.books.iter().map(|book| {
             let image_widget = match &book.handle_imagen {
                 Some(handle) => handle.clone(),
                 None => image::Handle::from_path("./45.png"),
             };
             
             let button = button(
-                column![
-                image(image_widget).width(200),
+                column![image(image_widget).width(200),
                 text(book.title.clone()).size(12), 
             ]
             .max_width(120)
             ).on_press(Message::NavigateTo("Reader"));
 
             button.into()
-    }).collect::<Vec<Element<'_, Message>>>();
+        }).collect::<Vec<Element<'_, Message>>>()
+    };
 
     let content = container(
         scrollable(
@@ -35,9 +39,6 @@ pub fn books_list_view<'a>(layout: &Layout) -> Element<'static, Message>  {
                 row(books_mapped)
                 .spacing(15)
                 .wrap(),
-                button("Read").on_press(
-                    Message::ImagesLoaded()
-                ),
             ]
             .spacing(40)
             .align_x(Center)
@@ -61,12 +62,10 @@ pub struct Book {
     pub handle_imagen: Option<image::Handle>,
 }
 
-#[warn(non_snake_case)]
 #[derive(PartialEq, Clone, Eq, Debug,serde::Deserialize)]
 struct ApiBook {
     title: String,
     url: String,
-    thumbnailUrl: String,
 }
 
 impl BooksList {
@@ -77,6 +76,7 @@ impl BooksList {
     }
 
     pub fn get_books(&self) -> Vec<Book> {
+        
         self.books.clone()
     }
 
@@ -97,7 +97,7 @@ impl BooksList {
                 };
                 Book {
                     title: book.title.clone(),
-                    imagen: book.thumbnailUrl,
+                    imagen: "https://picsum.photos/200/300".to_string(),
                     description: book.title,
                     handle_imagen: Some(imagen),
                 }
