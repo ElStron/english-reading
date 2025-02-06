@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 iced = { version = "0.13.1", features = ["image", "debug", "tokio", "web-colors", "advanced", "lazy", "canvas"] }
 serde_json = "1.0"
+chrono = "0.4"
+tracing-subscriber = "0.3"
 
 [dependencies.serde]
 version = "1.0"
