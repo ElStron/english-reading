@@ -1,15 +1,17 @@
 use iced::futures;
+use iced::event::{self, Event};
 use iced::widget::{
     button, center, checkbox, column, horizontal_space,
     pick_list, row, text,
 };
 use iced::{
-    color, Center, Element, Font, Length, Subscription, Theme,
+    color, Center, Element, Font, Length, Subscription, Theme, Task,
 };
 mod ui;
 mod messages;
+mod components;
 use messages::Message;
-use ui::{books_list_view, reader_view};
+use ui::{ books_list_view, reader_view};
 use ui::books::BooksList;
 
 pub fn main() -> iced::Result {
@@ -25,6 +27,7 @@ struct Layout {
     explain: bool,
     theme: Theme,
     books_list: BooksList,
+    loading_books: bool,
 }
 
 impl Layout {
@@ -32,40 +35,48 @@ impl Layout {
         format!("{} - Layout - Iced", self.example.title)
     }
 
-    fn update(&mut self, message: Message) {
-        let mut books = BooksList::new();
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::NavigateTo(title) => {
                 if let Some(example) = Example::find_by_title(title) {
                     self.example = example;
                     if title == "Books" {
-                        if self.books_list.get_books().is_empty() ||self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
-                            futures::executor::block_on(books.fetch_images());
-                            self.books_list = books;
+                        if self.books_list.get_books().is_empty() || self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
+                            self.loading_books = true; // ⏳ Activar el estado de carga
+                            
+                            let future = async move {
+                                let mut books = BooksList::new();
+                                books.fetch_images().await;
+                                books
+                            };
+                            return Task::perform(future, |books| Message::ImagesLoaded( books));
+
                         }
-                    } 
-                    self.example = example;
+                    }
                 }
+                Task::none()
             }
             Message::ExplainToggled(explain) => {
                
                 self.explain = explain;
+                Task::none()
             }
             Message::ThemeSelected(theme) => {
                 self.theme = theme;
+                Task::none()
             }
-            Message::ImagesLoaded() => {
-                if self.books_list.get_books().is_empty() ||self.books_list.get_books().iter().all(|b| b.handle_imagen.is_none()) {
-                    futures::executor::block_on(books.fetch_images());
-                    self.books_list = books;
-                }
-                
+            Message::ImagesLoaded( books) => {
+                println!("las imagenes se han cargado");
+                self.books_list = books;
+                self.loading_books = false; // ✅ Desactivar el estado de carga
+                Task::none()
             }
+            _ => Task::none(),
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::none() // Eliminamos la navegación con teclado
+        Subscription::none()    
     }
 
     fn view(&self) -> Element<Message> {
