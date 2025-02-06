@@ -28,6 +28,7 @@ struct Layout {
     theme: Theme,
     books_list: BooksList,
     loading_books: bool,
+    //events_data: Vec<Events>,
 }
 
 impl Layout {
