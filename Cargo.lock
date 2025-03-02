@@ -3219,6 +3219,7 @@ dependencies = [
  "chrono",
  "getrandom 0.2.15",
  "iced",
+ "image",
  "rand",
  "reqwest",
  "serde",
