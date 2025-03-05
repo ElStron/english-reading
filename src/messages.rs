@@ -9,4 +9,6 @@ pub enum Message {
     ImagesLoaded(BooksList),
     SetCurrentBook(i32),
     CurrentBookLoaded(BookDetails),
+    //AboutPressed,
+    //About(about::Message),
 }
