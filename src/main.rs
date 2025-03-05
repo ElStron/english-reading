@@ -1,7 +1,7 @@
-mod components;
 mod messages;
 mod ui;
 mod utils;
+//use ui::about
 
 use iced::widget::{button, center, checkbox, column, horizontal_space, pick_list, row, text};
 use iced::{color, window, Center, Element, Font, Length, Subscription, Task, Theme};
@@ -100,7 +100,6 @@ impl Layout {
                 self.current_book = Some(book);
                 Task::done(Message::NavigateTo("Books Details"))
             }
-            _ => Task::none(),
         }
     }
 
